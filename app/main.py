@@ -1,5 +1,4 @@
 from typing import Optional # استدعاء مكتبة Optional من typing
-
 from fastapi import Body, FastAPI,HTTPException, status, Response
 from pydantic import BaseModel
 from random import randrange
