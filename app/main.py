@@ -31,24 +31,7 @@ while True:
         print("connecting to database failed")
         print("Error:" ,error)
         time.sleep(2)
-
-    
-
-my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1}, 
-            {"title": "favorite foods", "content": "I like pizza", "id": 2}]
-
-# search with id 
-def find_post(id):
-    for p in my_posts:
-        if p['id'] == id:
-            return p
-
-# search with id deleted 
-def find_index_posts(id):
-    for i, p in enumerate(my_posts):
-        if p['id'] == id:
-            return i
-        
+     
         
 
 @app.get("/")
@@ -116,12 +99,13 @@ def update_posts(id: int, post: Post):
 @app.delete("/delete/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
     # deleting posts
-    # 
-    index = find_index_posts(id)
-    if index == None:
+    cursor.execute(""" DELETE FROM posts WHERE id = %s returning *""", (str(id),))
+    deleted_post = cursor.fetchone()
+    conn.commit()
+
+    if deleted_post == None:
         # رساله تظهر في حال عدم تطابق ال id
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail= f"post with id : {id} does not exits")
 
-    my_posts.pop(index)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
