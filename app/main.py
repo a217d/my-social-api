@@ -2,6 +2,9 @@ from typing import Optional # استدعاء مكتبة Optional من typing
 from fastapi import Body, FastAPI,HTTPException, status, Response
 from pydantic import BaseModel
 from random import randrange
+import psycopg2 # call liblary con with Postgre sql
+from psycopg2.extras import RealDictCursor # مكتبه تجعل نتائج الاستعلام ع شكل قواميس
+import time
 
 app = FastAPI()
 
@@ -9,16 +12,38 @@ class Post(BaseModel):
     title: str
     content: str
     published: bool = True
-    rating: Optional[int] = None
+
+while True:
+# create call with db
+    try:
+        conn = psycopg2.connect(
+            host='localhost', 
+            database='fastapi', 
+            user='postgres', 
+            password='123456789', 
+            cursor_factory=RealDictCursor # داله ترجع الاستعلام ع شكل dict()
+        )
+        cursor = conn.cursor() #داله تنفيذ الاولمر بداخل db
+        print("database connection was successfull!")
+        break
+
+    except Exception as error:
+        print("connecting to database failed")
+        print("Error:" ,error)
+        time.sleep(2)
+
+    
 
 my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1}, 
             {"title": "favorite foods", "content": "I like pizza", "id": 2}]
 
+# search with id 
 def find_post(id):
     for p in my_posts:
         if p['id'] == id:
             return p
 
+# search with id deleted 
 def find_index_posts(id):
     for i, p in enumerate(my_posts):
         if p['id'] == id:
@@ -32,15 +57,22 @@ def read_root():
 
 @app.get("/posts")
 def get_post():
-    return {"data": my_posts}
+    cursor.execute(""" SELECT * FROM posts""")
+    posts = cursor.fetchall()
+    return {"data": posts}
 
 # create a post status code 201 means created
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_post(post: Post):
-    post_dict = post.dict()
-    post_dict['id'] = randrange(0, 1000000)
-    my_posts.append(post_dict)
-    return {"data": post_dict}
+    # this qury more securty
+    cursor.execute(
+        """ INSERT INTO posts(titlle,content, published)  VALUES (%s, %s,%s) returning *""", 
+                    (post.title,post.content, post.published))
+    new_post = cursor.fetchone()
+
+    conn.commit() # save the chenge in db 
+    
+    return {"data": new_post}
 
 
 # get latest post
@@ -53,14 +85,15 @@ def get_latest_post():
 
 # get id of post
 @app.get("/posts/{id}")
-def get_post(id: int):
-    post = find_post(id)
-    if not post:
+def get_post(id: str):
+    cursor.execute(""" SELECT * FROM posts WHERE id = %s """, (str(id),))
+    one_post = cursor.fetchone()
+    if not one_post:
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, 
-                            detail="post with id : {id} was not found")
+                            detail=f"post with id : {id} was not found")
     
     return {
-        "post_detail": post
+        "post_detail": one_post
     }
 
 
