@@ -57,15 +57,6 @@ def create_post(post: Post):
     
     return {"data": new_post}
 
-
-# get latest post
-@app.get("/posts/latest")
-def get_latest_post():
-    post = my_posts[-1]
-    return {
-        "latest_post": post
-    }
-
 # get id of post
 @app.get("/posts/{id}")
 def get_post(id: str):
@@ -83,17 +74,17 @@ def get_post(id: str):
 # update of posts
 @app.put("/update/posts/{id}")
 def update_posts(id: int, post: Post):
-    index = find_index_posts(id)
-    if index == None:
+    cursor.execute(""" UPDATE posts SET titlle = %s , content = %s, published = %s WHERE id = %s returning *""", 
+                   (post.title,post.content, post.published, str(id))) # لتحقق من نوع البيانات عبر كلاس Post
+    
+    update_post = cursor.fetchone()
+    conn.commit()
+    if update_post == None:
             # رساله تظهر في حال عدم تطابق ال id
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail= f"post with id : {id} does not exits")
-    
-    post_dict = post.dict() # يقوم بتحويل البيانات التي تم استلامها الى قاموس
-    post_dict["id"] = id
-    my_posts[index] = post_dict
 
-    return{"massege": post_dict}
+    return{"massege": update_post}
 
 
 @app.delete("/delete/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
