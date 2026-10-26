@@ -1,12 +1,19 @@
 from typing import Optional # استدعاء مكتبة Optional من typing
-from fastapi import Body, FastAPI,HTTPException, status, Response
+from fastapi import FastAPI,HTTPException, status, Response, Depends
 from pydantic import BaseModel
 from random import randrange
 import psycopg2 # call liblary con with Postgre sql
 from psycopg2.extras import RealDictCursor # مكتبه تجعل نتائج الاستعلام ع شكل قواميس
 import time
+from sqlalchemy.orm import Session
+from . import models
+from .database import engine, get_db
+
+# يضمن عند بدء تشغيل السرفر الذهاب مباشره للقاعده البيانات للتاكد من وجود كافه الجداول
+models.Base.metadata.create_all(bind = engine)
 
 app = FastAPI()
+
 
 class Post(BaseModel):
     title: str
@@ -37,6 +44,12 @@ while True:
 @app.get("/")
 def read_root():
     return {"Hello": "Welcome to my api"}
+
+@app.get("/sqlalchemy")
+def test_post(db: Session = Depends(get_db)):
+    return{"status": "success"}
+
+
 
 @app.get("/posts")
 def get_post():
