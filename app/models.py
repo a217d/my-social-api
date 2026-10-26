@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Boolean
-from .database import Base # call the base class
+from sqlalchemy import Column, Integer, String, Boolean, TIMESTAMP
+# from sqlalchemy.sql.sqltypes import Text
 
+from .database import Base # call the base class
 class Post(Base):
     # create table
     __tablename__ = "posts"
@@ -8,5 +9,7 @@ class Post(Base):
     id = Column(Integer, primary_key= True, nullable= False)
     title = Column(String, nullable= False)
     content = Column(String, nullable= False)
-    published = Column(Boolean, default= True, nullable= False)
+    published = Column(Boolean, server_default= 'True', nullable= False)
+    created_at = Column(TIMESTAMP(timezone= True),
+                        nullable= False,server_default="now()")
     

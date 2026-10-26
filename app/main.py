@@ -47,34 +47,37 @@ def read_root():
 
 @app.get("/sqlalchemy")
 def test_post(db: Session = Depends(get_db)):
-    return{"status": "success"}
+
+    posts = db.query(models.Post).all()
+    return{"data": posts}
 
 
 
 @app.get("/posts")
-def get_post():
-    cursor.execute(""" SELECT * FROM posts""")
-    posts = cursor.fetchall()
+def get_posts(db: Session = Depends(get_db)):
+
+    posts = db.query(models.Post).all()
     return {"data": posts}
 
 # create a post status code 201 means created
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_post(post: Post):
-    # this qury more securty
-    cursor.execute(
-        """ INSERT INTO posts(titlle,content, published)  VALUES (%s, %s,%s) returning *""", 
-                    (post.title,post.content, post.published))
-    new_post = cursor.fetchone()
+def create_post(post: Post, db: Session = Depends(get_db)):
+    # this query withe sqlachemy
+   
+    new_post = models.Post(**post.dict())# تحويله الى قاموس بدلا من التمرير بشكل منفصل
 
-    conn.commit() # save the chenge in db 
-    
+    db.add(new_post)
+    db.commit() # save the chenge in db
+    db.refresh(new_post)# return the new post
+
     return {"data": new_post}
 
 # get id of post
 @app.get("/posts/{id}")
-def get_post(id: str):
-    cursor.execute(""" SELECT * FROM posts WHERE id = %s """, (str(id),))
-    one_post = cursor.fetchone()
+def get_post(id: int, db: Session = Depends(get_db)):
+    # فلتره وجلب البيانات التي تحمل نفس قيمه id المدخل
+    one_post =db.query(models.Post).filter(models.Post.id == id).first()
+    
     if not one_post:
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, 
                             detail=f"post with id : {id} was not found")
@@ -86,30 +89,36 @@ def get_post(id: str):
 
 # update of posts
 @app.put("/update/posts/{id}")
-def update_posts(id: int, post: Post):
-    cursor.execute(""" UPDATE posts SET titlle = %s , content = %s, published = %s WHERE id = %s returning *""", 
-                   (post.title,post.content, post.published, str(id))) # لتحقق من نوع البيانات عبر كلاس Post
-    
-    update_post = cursor.fetchone()
-    conn.commit()
-    if update_post == None:
+def update_posts(id: int, update_post: Post, db: Session = Depends(get_db)):
+
+    update_post_query = db.query(models.Post).filter(models.Post.id == id)
+
+    post = update_post_query.first()
+
+    if post == None:
             # رساله تظهر في حال عدم تطابق ال id
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail= f"post with id : {id} does not exits")
 
-    return{"massege": update_post}
+    #if not null
+    update_post_query.update(update_post.dict(), synchronize_session= False)
+
+    db.commit()
+
+    return{"massege": update_post_query.first()}
 
 
 @app.delete("/delete/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(id: int):
-    # deleting posts
-    cursor.execute(""" DELETE FROM posts WHERE id = %s returning *""", (str(id),))
-    deleted_post = cursor.fetchone()
-    conn.commit()
+def delete_post(id: int, db: Session = Depends(get_db)):
+    # deleting sqlachemy posts
+    deleted_post = db.query(models.Post).filter(models.Post.id == id)
 
-    if deleted_post == None:
+    if deleted_post.first() == None: # في حال لم يتم ارجاع بيانات
         # رساله تظهر في حال عدم تطابق ال id
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail= f"post with id : {id} does not exits")
+
+    deleted_post.delete(synchronize_session= False)
+    db.commit()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
