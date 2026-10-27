@@ -1,12 +1,12 @@
-from typing import Optional # استدعاء مكتبة Optional من typing
+from typing import Optional, List # استدعاء مكتبة Optional من typing
 from fastapi import FastAPI,HTTPException, status, Response, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel 
 from random import randrange
 import psycopg2 # call liblary con with Postgre sql
 from psycopg2.extras import RealDictCursor # مكتبه تجعل نتائج الاستعلام ع شكل قواميس
 import time
 from sqlalchemy.orm import Session
-from . import models
+from . import models, schemas
 from .database import engine, get_db
 
 # يضمن عند بدء تشغيل السرفر الذهاب مباشره للقاعده البيانات للتاكد من وجود كافه الجداول
@@ -15,10 +15,6 @@ models.Base.metadata.create_all(bind = engine)
 app = FastAPI()
 
 
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True
 
 while True:
 # create call with db
@@ -45,23 +41,16 @@ while True:
 def read_root():
     return {"Hello": "Welcome to my api"}
 
-@app.get("/sqlalchemy")
-def test_post(db: Session = Depends(get_db)):
 
-    posts = db.query(models.Post).all()
-    return{"data": posts}
-
-
-
-@app.get("/posts")
+@app.get("/posts", response_model= List[schemas.Post])
 def get_posts(db: Session = Depends(get_db)):
 
     posts = db.query(models.Post).all()
-    return {"data": posts}
+    return  posts
 
 # create a post status code 201 means created
-@app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_post(post: Post, db: Session = Depends(get_db)):
+@app.post("/posts", status_code=status.HTTP_201_CREATED, response_model= schemas.Post)
+def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     # this query withe sqlachemy
    
     new_post = models.Post(**post.dict())# تحويله الى قاموس بدلا من التمرير بشكل منفصل
@@ -70,10 +59,10 @@ def create_post(post: Post, db: Session = Depends(get_db)):
     db.commit() # save the chenge in db
     db.refresh(new_post)# return the new post
 
-    return {"data": new_post}
+    return  new_post
 
 # get id of post
-@app.get("/posts/{id}")
+@app.get("/posts/{id}", response_model= schemas.Post)
 def get_post(id: int, db: Session = Depends(get_db)):
     # فلتره وجلب البيانات التي تحمل نفس قيمه id المدخل
     one_post =db.query(models.Post).filter(models.Post.id == id).first()
@@ -82,14 +71,13 @@ def get_post(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, 
                             detail=f"post with id : {id} was not found")
     
-    return {
-        "post_detail": one_post
-    }
+    return one_post
+
 
 
 # update of posts
-@app.put("/update/posts/{id}")
-def update_posts(id: int, update_post: Post, db: Session = Depends(get_db)):
+@app.put("/update/posts/{id}", response_model= schemas.Post)
+def update_posts(id: int, update_post: schemas.PostCreate, db: Session = Depends(get_db)):
 
     update_post_query = db.query(models.Post).filter(models.Post.id == id)
 
@@ -105,7 +93,7 @@ def update_posts(id: int, update_post: Post, db: Session = Depends(get_db)):
 
     db.commit()
 
-    return{"massege": update_post_query.first()}
+    return update_post_query.first()
 
 
 @app.delete("/delete/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
@@ -122,3 +110,17 @@ def delete_post(id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@app.post("/createusers", status_code=status.HTTP_201_CREATED, response_model= schemas.UserOut)
+def create_user(user: schemas.UserCreate ,db: Session = Depends(get_db)):
+    new_user = models.User(**user.dict())# تحويله الى قاموس بدلا من التمرير بشكل منفصل
+    
+    db.add(new_user)
+    db.commit() # save the chenge in db
+    db.refresh(new_user)
+
+    return new_user
+
+
+
+
