@@ -4,16 +4,18 @@ from typing import List
 from .. import models, schemas
 from ..database import get_db
 
-router = APIRouter()
+router = APIRouter(
+    prefix= "/posts"
+)
 
-@router.get("/posts", response_model= List[schemas.Post])
+@router.get("/", response_model= List[schemas.Post])
 def get_posts(db: Session = Depends(get_db)):
 
     posts = db.query(models.Post).all()
     return  posts
 
 # create a post status code 201 means created
-@router.post("/posts", status_code=status.HTTP_201_CREATED, response_model= schemas.Post)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model= schemas.Post)
 def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     # this query withe sqlachemy
    
@@ -26,7 +28,7 @@ def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     return  new_post
 
 # get id of post
-@router.get("/posts/{id}", response_model= schemas.Post)
+@router.get("/{id}", response_model= schemas.Post)
 def get_post(id: int, db: Session = Depends(get_db)):
     # فلتره وجلب البيانات التي تحمل نفس قيمه id المدخل
     one_post =db.query(models.Post).filter(models.Post.id == id).first()
@@ -40,7 +42,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
 
 
 # update of posts
-@router.put("/update/posts/{id}", response_model= schemas.Post)
+@router.put("/{id}", response_model= schemas.Post)
 def update_posts(id: int, update_post: schemas.PostCreate, db: Session = Depends(get_db)):
 
     update_post_query = db.query(models.Post).filter(models.Post.id == id)
@@ -60,7 +62,7 @@ def update_posts(id: int, update_post: schemas.PostCreate, db: Session = Depends
     return update_post_query.first()
 
 
-@router.delete("/delete/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{id}",status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int, db: Session = Depends(get_db)):
     # deleting sqlachemy posts
     deleted_post = db.query(models.Post).filter(models.Post.id == id)
