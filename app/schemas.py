@@ -1,5 +1,6 @@
 from pydantic import BaseModel,EmailStr #مكتبه تحدد كيفيه هيكل البيانات المطلوبه
 from datetime import datetime
+from typing import Optional
 
 
 class PostBase(BaseModel):
@@ -31,3 +32,15 @@ class UserOut(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+# Response (استجابة)
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+# أداة داخلية لحمل البيانات التي نستخرجها من التوكن بعد فك تشفيره
+class Tokendata(BaseModel):
+    id : Optional["str"] = None
+
+
+
