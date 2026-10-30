@@ -39,8 +39,8 @@ class Token(BaseModel):
     token_type: str
 
 # أداة داخلية لحمل البيانات التي نستخرجها من التوكن بعد فك تشفيره
-class Tokendata(BaseModel):
-    id : Optional["str"] = None
+class TokenData(BaseModel):
+    id : Optional[int] = None
 
 
 
