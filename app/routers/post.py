@@ -10,7 +10,7 @@ router = APIRouter(
 )
 
 @router.get("/", response_model= List[schemas.Post])
-def get_posts(db: Session = Depends(get_db), current_userr: int = Depends
+def get_posts(db: Session = Depends(get_db), current_user: int = Depends
             (oauth2.get_current_user)):
 
     posts = db.query(models.Post).all()
@@ -18,13 +18,11 @@ def get_posts(db: Session = Depends(get_db), current_userr: int = Depends
 
 # create a post status code 201 means created
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model= schemas.Post)
-def create_post(post: schemas.PostCreate, db: Session = Depends(get_db), current_userr: int = Depends
+def create_post(post: schemas.PostCreate, db: Session = Depends(get_db), current_user: int = Depends
             (oauth2.get_current_user)):
-    print(current_userr.email)
 
     # this query withe sqlachemy
-    new_post = models.Post(**post.dict())# تحويله الى قاموس بدلا من التمرير بشكل منفصل
-
+    new_post = models.Post(owner_id= current_user.id, **post.dict())# تحويله الى قاموس بدلا من التمرير بشكل منفصل
     db.add(new_post)
     db.commit() # save the chenge in db
     db.refresh(new_post)# return the new post
@@ -33,7 +31,7 @@ def create_post(post: schemas.PostCreate, db: Session = Depends(get_db), current
 
 # get id of post
 @router.get("/{id}", response_model= schemas.Post)
-def get_post(id: int, db: Session = Depends(get_db),current_userr: int = Depends
+def get_post(id: int, db: Session = Depends(get_db),current_user: int = Depends
             (oauth2.get_current_user)):
     # فلتره وجلب البيانات التي تحمل نفس قيمه id المدخل
     one_post =db.query(models.Post).filter(models.Post.id == id).first()
@@ -48,7 +46,7 @@ def get_post(id: int, db: Session = Depends(get_db),current_userr: int = Depends
 
 # update of posts
 @router.put("/{id}", response_model= schemas.Post)
-def update_posts(id: int, update_post: schemas.PostCreate, db: Session = Depends(get_db), current_userr: int = Depends
+def update_posts(id: int, update_post: schemas.PostCreate, db: Session = Depends(get_db), current_user: int = Depends
             (oauth2.get_current_user)):
 
     update_post_query = db.query(models.Post).filter(models.Post.id == id)
@@ -60,6 +58,10 @@ def update_posts(id: int, update_post: schemas.PostCreate, db: Session = Depends
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail= f"post with id : {id} does not exits")
 
+    if post.owner_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail= f"Not authorized to perform requested action")
+
     #if not null
     update_post_query.update(update_post.dict(), synchronize_session= False)
 
@@ -69,15 +71,21 @@ def update_posts(id: int, update_post: schemas.PostCreate, db: Session = Depends
 
 
 @router.delete("/{id}",status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(id: int, db: Session = Depends(get_db), current_userr: int = Depends
+def delete_post(id: int, db: Session = Depends(get_db), current_user: int = Depends
             (oauth2.get_current_user)):
     # deleting sqlachemy posts
     deleted_post = db.query(models.Post).filter(models.Post.id == id)
 
-    if deleted_post.first() == None: # في حال لم يتم ارجاع بيانات
+    post = deleted_post.first() # جلب اول عنصر من البيانات التي تم جلبها
+
+    if post == None: # في حال لم يتم ارجاع بيانات
         # رساله تظهر في حال عدم تطابق ال id
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail= f"post with id : {id} does not exits")
+
+    if post.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail= f"Not authorized to perform requested action")
 
     deleted_post.delete(synchronize_session= False)
     db.commit()

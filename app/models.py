@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, TIMESTAMP
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, TIMESTAMP
 # from sqlalchemy.sql.sqltypes import Text
 
 from .database import Base # call the base class
@@ -12,6 +12,8 @@ class Post(Base):
     published = Column(Boolean, server_default= 'True', nullable= False)
     created_at = Column(TIMESTAMP(timezone= True),
                         nullable= False,server_default="now()")
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable= False) # foreign key to user table
+
 
 class User(Base):
     # create table User
