@@ -4,10 +4,11 @@ from sqlalchemy.orm import sessionmaker #created sessionmaker
 from psycopg2.extras import RealDictCursor # مكتبه تجعل نتائج الاستعلام ع شكل قواميس
 import psycopg2 # call liblary con with Postgre sql
 import time
+from .config import settings
 
 
 #  رابط  الاتصال ب قاعده البيانات باستخدام الطريقه الكلاسيكيه 
-SQLALCHEMY_DATABASE_URL = 'postgresql+psycopg2://postgres:123456789@localhost/fastapi' 
+SQLALCHEMY_DATABASE_URL = f'postgresql+psycopg2://{settings.database_username}:{settings.database_password}@{settings.database_hostname}:{settings.database_port}/{settings.database_name}' 
 
 # إنشاء المحرك لاداره الاتصال مع السرفر
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
