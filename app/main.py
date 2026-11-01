@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from . import models
 from .database import engine
 from .routers import post, user,auth
-
+from .config import settings
 # يضمن عند بدء تشغيل السرفر الذهاب مباشره للقاعده البيانات للتاكد من وجود كافه الجداول
 models.Base.metadata.create_all(bind = engine)
 
