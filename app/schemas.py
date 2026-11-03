@@ -1,7 +1,7 @@
 from pydantic import BaseModel,EmailStr #مكتبه تحدد كيفيه هيكل البيانات المطلوبه
 from datetime import datetime
 from typing import Optional
-
+from pydantic import BaseModel, Field
 
 class PostBase(BaseModel):
     title: str
@@ -46,4 +46,6 @@ class TokenData(BaseModel):
     id : Optional[int] = None
 
 
-
+class Vote(BaseModel):
+    post_id: int
+    dir: int = Field(le=1)  # تضمن أن القيمة أقل من أو تساوي 1
