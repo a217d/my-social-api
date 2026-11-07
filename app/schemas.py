@@ -18,6 +18,13 @@ class Post(PostBase):
     owner_id: int
     owner: UserOut 
 
+# ربط بين جدولين post و vote لاظهار عدد الاصوات لكل منشور
+class PostOut(BaseModel):
+    Post: Post
+    votes: int
+
+    class Config:
+        from_attributes = True
 
 
 # Recust كلاس الطلبات
